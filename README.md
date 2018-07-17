@@ -2,6 +2,17 @@
 
 ## Creating a git repo
 
+````bash
+git config --global user.email "raboley@gmail.com"
+git config --global user.name "Russell Boley"
+
+echo "# TDDAngularMovieApp" >> README.md
+git init
+git add README.md
+git commit -m "first commit"
+git remote add origin https://github.com/raboley/TDDAngularMovieApp.git
+git push -u origin master
+````
 
 ## Setting up Jasmine
 
