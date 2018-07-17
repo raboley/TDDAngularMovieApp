@@ -16,7 +16,7 @@ git push -u origin master
 
 ## Setting up Jasmine
 
-Jasmine is a behaviorial driven development tool that can be downloaded from the terminal.  First steps are to create a folder then download and unzip it.
+Jasmine is a behaviorial driven development tool that can be downloaded from the terminal. It has an html page UI that can be used to check status of tests. First steps are to create a folder then download and unzip it.
 
 ````bash
 mkdir movie-app
@@ -36,7 +36,7 @@ Once downloaded it will contain 3 folders
 ## Setting up Karma
 
 Karma allows us to execute our tests via the command line, and is installed with npm via node.js
-Before installing it is important to have node.js installed. Once you have node.js use the terminal to install via npm and answer all the prompts.  All the defaults should be fine, but a description of the package is nice to have.
+Before installing it is important to have node.js installed. Once you have node.js use the terminal to install via npm and answer all the prompts. All the defaults should be fine, but a description of the package is nice to have.
 
 ````bash
 node --version
