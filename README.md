@@ -234,4 +234,3 @@ Remove the code between the service {} and add an object literal mock below that
 ````
 
 The automated tests will fail now because we need to load the module service.
-
