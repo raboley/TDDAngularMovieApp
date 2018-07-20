@@ -147,3 +147,74 @@ To use karma update the [Karma config file](./movie-app/karma.conf.js) to includ
       'spec/**/*.js'
     ],
 ````
+
+## Writing a unit test to return json results from omdb api
+
+This first test has the code embedded in the test, and it is just returing the same json we pass in so it is kind of cheating, however the import things to note is that we use the full string json result from the real api. By searching for `'star wars'` on [omdb](http://omdbapi.com/) you get the big result below we will store in the movieData variable.
+
+````javascript
+describe('omdb service', function() {
+    var movieData = {"Title":"Star Wars: Episode IV - A New Hope","Year":"1977","Rated":"PG","Released":"25 May 1977","Runtime":"121 min","Genre":"Action, Adventure, Fantasy","Director":"George Lucas","Writer":"George Lucas","Actors":"Mark Hamill, Harrison Ford, Carrie Fisher, Peter Cushing","Plot":"Luke Skywalker joins forces with a Jedi Knight, a cocky pilot, a Wookiee and two droids to save the galaxy from the Empire's world-destroying battle-station, while also attempting to rescue Princess Leia from the evil Darth Vader.","Language":"English","Country":"USA","Awards":"Won 6 Oscars. Another 50 wins & 28 nominations.","Poster":"https://m.media-amazon.com/images/M/MV5BNzVlY2MwMjktM2E4OS00Y2Y3LWE3ZjctYzhkZGM3YzA1ZWM2XkEyXkFqcGdeQXVyNzkwMjQ5NzM@._V1_SX300.jpg","Ratings":[{"Source":"Internet Movie Database","Value":"8.6/10"},{"Source":"Rotten Tomatoes","Value":"93%"},{"Source":"Metacritic","Value":"90/100"}],"Metascore":"90","imdbRating":"8.6","imdbVotes":"1,063,160","imdbID":"tt0076759","Type":"movie","DVD":"21 Sep 2004","BoxOffice":"N/A","Production":"20th Century Fox","Website":"http://www.starwars.com/episode-iv/","Response":"True"}
+
+    it('should return search movie data', function() {
+        var service = {
+            search: function(query) {
+                return movieData
+            }
+        };
+        expect(service.search('star wars')).toEqual(movieData);
+    });
+});
+````
+
+First we describe the test, and pass in a function.  Then create the variable to hold what the results should be. _This won't be a great long term test since in a couple years when the new star wars movies come out it will probably cause this test to fail inadvertantly, but oh well._
+
+Next we are creating variable that is a function with a search method that returns the movieData variable. 
+
+The final part is an assertion that we expect the results from our service variable's function will equal the same thing as our json string when we pass it the string `'star wars'`
+
+### mocking modules using ngMock
+
+There are 3 module function argument types
+
+1. string
+1. function
+1. object
+
+#### String alias
+
+Just reference the module by name.
+
+````javascript
+angular.mock.module('omdbModule');
+````
+
+#### Anonymous function
+
+Just pass the whole thing in as an anonymous function?
+
+````javascript
+angular.mock.module(function($provide)) {
+    $provide.factory('omdbApi', function() {
+        return {
+            search: function(query) {
+                return movieData;
+            }
+        }
+    }
+});
+````
+
+#### Anonymous Object Literal
+
+creates a service using the provide thing, which restricts it to a value service. That means other services cannot be injected.
+
+````javascript
+angular.mock.module({
+    'omdbApi': {
+        search: function(query) {
+            return movieData;
+        }
+    }
+});
+````
