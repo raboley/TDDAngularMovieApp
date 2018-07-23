@@ -273,6 +273,8 @@ We then call angular mock which passes in an anonymous function that calls mock 
 
 ### Function argument technique
 
+another option is to use the angular factory pattern to spin up an instance of the module. This will return a module with the same search method that returns the same static movie data for now.
+
 ````javascript
     it('should return search movie data', function() {
         var omdbApi = {};
@@ -294,3 +296,136 @@ We then call angular mock which passes in an anonymous function that calls mock 
         expect(omdbApi.search('star wars')).toEqual(movieData);
     });
 ````
+
+## Importing modules from external files
+
+Now we will seperate the business logic from the test and import it into the test as a module. To start create a src file within the movie-app folder if it doesn't exist, then create another folder called omdb with a file inside it called service.js.
+
+That file will hold the logic to return the query data. We will use the same factory logic as in the previous example, just extract it to an external file. The omdb module will have a factory to create the service omdbApi with the method search. It will still return the same static string from before.
+
+````javascript
+angular.module('omdb',[])
+    .factory('omdbApi', function() {
+        var service = {};
+
+        service.search = function(query) {
+            return {"Search":[{"Title":"Star Wars: Episode IV - A New Hope","Year":"1977","Rated":"PG","Released":"25 May 1977","Runtime":"121 min","Genre":"Action, Adventure, Fantasy","Director":"George Lucas","Writer":"George Lucas","Actors":"Mark Hamill, Harrison Ford, Carrie Fisher, Peter Cushing","Plot":"Luke Skywalker joins forces with a Jedi Knight, a cocky pilot, a Wookiee and two droids to save the galaxy from the Empire's world-destroying battle-station, while also attempting to rescue Princess Leia from the evil Darth Vader.","Language":"English","Country":"USA","Awards":"Won 6 Oscars. Another 50 wins & 28 nominations.","Poster":"https://m.media-amazon.com/images/M/MV5BNzVlY2MwMjktM2E4OS00Y2Y3LWE3ZjctYzhkZGM3YzA1ZWM2XkEyXkFqcGdeQXVyNzkwMjQ5NzM@._V1_SX300.jpg","Ratings":[{"Source":"Internet Movie Database","Value":"8.6/10"},{"Source":"Rotten Tomatoes","Value":"93%"},{"Source":"Metacritic","Value":"90/100"}],"Metascore":"90","imdbRating":"8.6","imdbVotes":"1,063,160","imdbID":"tt0076759","Type":"movie","DVD":"21 Sep 2004","BoxOffice":"N/A","Production":"20th Century Fox","Website":"http://www.starwars.com/episode-iv/","Response":"True"}]};
+        }
+
+        return service;
+    });
+````
+
+after that just update the test to reference the omdb module by name and we will still have a passing test.
+
+````javascript
+    it('should return search movie data', function() {
+        var omdbApi = {};
+
+        angular.mock.module('omdb');
+
+        angular.mock.inject(function(_omdbApi_) {
+            omdbApi = _omdbApi_;
+        });
+
+        expect(omdbApi.search('star wars')).toEqual(movieData);
+    });
+````
+
+## add a second test
+
+Now that the search method is working, lets add a find method which will search the api by id. It should be pretty similar to the previous test, so a lot of the code can be re-used, but it will need a new sample data json to test. On the [omdb](http://omdbapi.com/) website put in the id of tt0076759 and paste the results in a new object called movieDataById at the top of the spec file.
+
+````javascript
+var movieDataById = {"Title":"Star Wars: Episode IV - A New Hope","Year":"1977","Rated":"PG","Released":"25 May 1977","Runtime":"121 min","Genre":"Action, Adventure, Fantasy","Director":"George Lucas","Writer":"George Lucas","Actors":"Mark Hamill, Harrison Ford, Carrie Fisher, Peter Cushing","Plot":"Luke Skywalker joins forces with a Jedi Knight, a cocky pilot, a Wookiee and two droids to save the galaxy from the Empire's world-destroying battle-station, while also attempting to rescue Princess Leia from the evil Darth Vader.","Language":"English","Country":"USA","Awards":"Won 6 Oscars. Another 50 wins & 28 nominations.","Poster":"https://m.media-amazon.com/images/M/MV5BNzVlY2MwMjktM2E4OS00Y2Y3LWE3ZjctYzhkZGM3YzA1ZWM2XkEyXkFqcGdeQXVyNzkwMjQ5NzM@._V1_SX300.jpg","Ratings":[{"Source":"Internet Movie Database","Value":"8.6/10"},{"Source":"Rotten Tomatoes","Value":"93%"},{"Source":"Metacritic","Value":"90/100"}],"Metascore":"90","imdbRating":"8.6","imdbVotes":"1,063,160","imdbID":"tt0076759","Type":"movie","DVD":"21 Sep 2004","BoxOffice":"N/A","Production":"20th Century Fox","Website":"http://www.starwars.com/episode-iv/","Response":"True"}
+````
+
+Next copy the above test to a new test changing the data and service referenced.
+
+````javascript
+    it('should return movie data by id', function() {
+        var omdbApi = {};
+
+        angular.mock.module('omdb');
+
+        angular.mock.inject(function(_omdbApi_) {
+            omdbApi = _omdbApi_;
+        });
+
+        expect(omdbApi.find('tt0076759')).toEqual(movieDataById);
+    });
+````
+
+notice the description of the test, the service call and the variable referenced are the only changes needed.
+
+Next create the new service in the src file. It should also be very similar to the previous one so copy paste is very handy. The full file is below, but the onyl change is the addition of the service.find
+
+````javascript
+angular.module('omdb',[])
+    .factory('omdbApi', function() {
+        var service = {};
+
+        service.search = function(query) {
+            return {"Search":[{"Title":"Star Wars: Episode IV - A New Hope","Year":"1977","Rated":"PG","Released":"25 May 1977","Runtime":"121 min","Genre":"Action, Adventure, Fantasy","Director":"George Lucas","Writer":"George Lucas","Actors":"Mark Hamill, Harrison Ford, Carrie Fisher, Peter Cushing","Plot":"Luke Skywalker joins forces with a Jedi Knight, a cocky pilot, a Wookiee and two droids to save the galaxy from the Empire's world-destroying battle-station, while also attempting to rescue Princess Leia from the evil Darth Vader.","Language":"English","Country":"USA","Awards":"Won 6 Oscars. Another 50 wins & 28 nominations.","Poster":"https://m.media-amazon.com/images/M/MV5BNzVlY2MwMjktM2E4OS00Y2Y3LWE3ZjctYzhkZGM3YzA1ZWM2XkEyXkFqcGdeQXVyNzkwMjQ5NzM@._V1_SX300.jpg","Ratings":[{"Source":"Internet Movie Database","Value":"8.6/10"},{"Source":"Rotten Tomatoes","Value":"93%"},{"Source":"Metacritic","Value":"90/100"}],"Metascore":"90","imdbRating":"8.6","imdbVotes":"1,063,160","imdbID":"tt0076759","Type":"movie","DVD":"21 Sep 2004","BoxOffice":"N/A","Production":"20th Century Fox","Website":"http://www.starwars.com/episode-iv/","Response":"True"}]};
+        }
+
+        service.find = function(id) {
+            return {"Title":"Star Wars: Episode IV - A New Hope","Year":"1977","Rated":"PG","Released":"25 May 1977","Runtime":"121 min","Genre":"Action, Adventure, Fantasy","Director":"George Lucas","Writer":"George Lucas","Actors":"Mark Hamill, Harrison Ford, Carrie Fisher, Peter Cushing","Plot":"Luke Skywalker joins forces with a Jedi Knight, a cocky pilot, a Wookiee and two droids to save the galaxy from the Empire's world-destroying battle-station, while also attempting to rescue Princess Leia from the evil Darth Vader.","Language":"English","Country":"USA","Awards":"Won 6 Oscars. Another 50 wins & 28 nominations.","Poster":"https://m.media-amazon.com/images/M/MV5BNzVlY2MwMjktM2E4OS00Y2Y3LWE3ZjctYzhkZGM3YzA1ZWM2XkEyXkFqcGdeQXVyNzkwMjQ5NzM@._V1_SX300.jpg","Ratings":[{"Source":"Internet Movie Database","Value":"8.6/10"},{"Source":"Rotten Tomatoes","Value":"93%"},{"Source":"Metacritic","Value":"90/100"}],"Metascore":"90","imdbRating":"8.6","imdbVotes":"1,063,160","imdbID":"tt0076759","Type":"movie","DVD":"21 Sep 2004","BoxOffice":"N/A","Production":"20th Century Fox","Website":"http://www.starwars.com/episode-iv/","Response":"True"};
+        }
+
+
+        return service;
+    });
+````
+
+save that and you should have a passing test.
+
+### refactor the test to use beforeEach
+
+beforeEach function runs the code inside before each test. since a lot of our code is duplicated this change will make it much more readable and less repeated.
+
+above the first it statement add a beforeEach() to mock our omdb module, and then also pull out the construction of the omdbApi variable above that.
+
+````javascript
+var omdbApi = {};
+
+beforeEach(angular.mock.module('omdb'));
+````
+
+the same thing can then be done with calls to the inject function inside each test. Once that is done it leaves us with a much cleaner looking test where the plumbing happens in the beforeEach calls, and the tests only contain calls to the business logic we want to test. The full file is below.
+
+````javascript
+describe('omdb service', function() {
+    var movieData = {"Search":[{"Title":"Star Wars: Episode IV - A New Hope","Year":"1977","Rated":"PG","Released":"25 May 1977","Runtime":"121 min","Genre":"Action, Adventure, Fantasy","Director":"George Lucas","Writer":"George Lucas","Actors":"Mark Hamill, Harrison Ford, Carrie Fisher, Peter Cushing","Plot":"Luke Skywalker joins forces with a Jedi Knight, a cocky pilot, a Wookiee and two droids to save the galaxy from the Empire's world-destroying battle-station, while also attempting to rescue Princess Leia from the evil Darth Vader.","Language":"English","Country":"USA","Awards":"Won 6 Oscars. Another 50 wins & 28 nominations.","Poster":"https://m.media-amazon.com/images/M/MV5BNzVlY2MwMjktM2E4OS00Y2Y3LWE3ZjctYzhkZGM3YzA1ZWM2XkEyXkFqcGdeQXVyNzkwMjQ5NzM@._V1_SX300.jpg","Ratings":[{"Source":"Internet Movie Database","Value":"8.6/10"},{"Source":"Rotten Tomatoes","Value":"93%"},{"Source":"Metacritic","Value":"90/100"}],"Metascore":"90","imdbRating":"8.6","imdbVotes":"1,063,160","imdbID":"tt0076759","Type":"movie","DVD":"21 Sep 2004","BoxOffice":"N/A","Production":"20th Century Fox","Website":"http://www.starwars.com/episode-iv/","Response":"True"}]};
+    var movieDataById = {"Title":"Star Wars: Episode IV - A New Hope","Year":"1977","Rated":"PG","Released":"25 May 1977","Runtime":"121 min","Genre":"Action, Adventure, Fantasy","Director":"George Lucas","Writer":"George Lucas","Actors":"Mark Hamill, Harrison Ford, Carrie Fisher, Peter Cushing","Plot":"Luke Skywalker joins forces with a Jedi Knight, a cocky pilot, a Wookiee and two droids to save the galaxy from the Empire's world-destroying battle-station, while also attempting to rescue Princess Leia from the evil Darth Vader.","Language":"English","Country":"USA","Awards":"Won 6 Oscars. Another 50 wins & 28 nominations.","Poster":"https://m.media-amazon.com/images/M/MV5BNzVlY2MwMjktM2E4OS00Y2Y3LWE3ZjctYzhkZGM3YzA1ZWM2XkEyXkFqcGdeQXVyNzkwMjQ5NzM@._V1_SX300.jpg","Ratings":[{"Source":"Internet Movie Database","Value":"8.6/10"},{"Source":"Rotten Tomatoes","Value":"93%"},{"Source":"Metacritic","Value":"90/100"}],"Metascore":"90","imdbRating":"8.6","imdbVotes":"1,063,160","imdbID":"tt0076759","Type":"movie","DVD":"21 Sep 2004","BoxOffice":"N/A","Production":"20th Century Fox","Website":"http://www.starwars.com/episode-iv/","Response":"True"}
+    var omdbApi = {};
+
+    beforeEach(angular.mock.module('omdb'));
+
+    beforeEach(angular.mock.inject(function(_omdbApi_) {
+        omdbApi = _omdbApi_;
+    }));
+
+    it('should return search movie data', function() {
+        expect(omdbApi.search('star wars')).toEqual(movieData);
+    });
+
+    it('should return movie data by id', function() {
+        expect(omdbApi.find('tt0076759')).toEqual(movieDataById);
+    });
+});
+````
+
+One thing to note is that the `module` and `inject` methods are both so commonly used that they are available at the window level. This means that the `angular.mock` prefix is optional. Those could be re-written as: 
+
+````javascript
+    beforeEach(module('omdb'));
+
+    beforeEach(inject(function(_omdbApi_) {
+        omdbApi = _omdbApi_;
+    }));
+````
+
+and do exactly the same thing. I am going to keep the prefix just so that it is clear where these commands are coming from, but they are not required.
+
+## Debugging with Dump
