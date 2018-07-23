@@ -429,3 +429,23 @@ One thing to note is that the `module` and `inject` methods are both so commonly
 and do exactly the same thing. I am going to keep the prefix just so that it is clear where these commands are coming from, but they are not required.
 
 ## Debugging with Dump
+
+dump is a function that serializes objecs so that they are easy to read in the console. the json objects we are passing in for instance are hard to read if we just do
+
+````javascript
+console.log(movieData);
+````
+
+but if we pass in dump first, it will format it in an easier to read format so that we can more quickly troubleshoot our app.
+
+````javascript
+console.log(angular.mock.dump(movieData));
+````
+
+Jasmine also has a `dump` function that replaces the `console.log` function.
+
+````javascript
+dump(angular.mock.dump(movieData));
+````
+
+this does the same thing as `console.log`, and still requires the `angular.mock.dump` call inside the `dump` function so i'm not sure why you would use this over `console.log`.

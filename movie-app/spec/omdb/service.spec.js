@@ -10,6 +10,7 @@ describe('omdb service', function() {
     }));
 
     it('should return search movie data', function() {
+        dump(angular.mock.dump(movieData));
         expect(omdbApi.search('star wars')).toEqual(movieData);
     });
 
