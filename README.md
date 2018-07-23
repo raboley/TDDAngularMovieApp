@@ -233,4 +233,64 @@ Remove the code between the service {} and add an object literal mock below that
         });
 ````
 
-The automated tests will fail now because we need to load the module service.
+The automated tests will fail now because we need to load an instance of the module service. This is where the inject mock function comes in.
+
+## ngMock Inject Function
+
+Inject: used to get instances of components from modules. Said another way it creates mocks of components without using ngmodule like how they would be loaded in html. This is shown in the diagram below:
+
+![ngMock-InjectDiagram](./Documentation/Images/ngMock-InjectDiagram.jpeg)
+
+When a module is called, it gets put in a queue to be loaded up, but it isn't till the angular injector is called that it actually gets loaded.
+
+### Object literal style
+
+Using this we can ask for our omdbApi by asking for it by name. The code will look like this when finished.
+
+````javascript
+    it('should return search movie data', function() {
+        var omdbApi = {};
+
+        angular.mock.module({
+            'omdbApi': {
+                search: function(query) {
+                    return movieData
+                }
+            }
+        });
+
+        angular.mock.inject(function(_omdbApi_) {
+            omdbApi = _omdbApi_;
+        });
+
+        expect(omdbApi.search('star wars')).toEqual(movieData);
+    });
+````
+
+`angular.mock.module` passes in a mock of the ES module we created called omdbApi. This api is an object literal. Object literals are basically key value pairs that are very flexible. like dictionary or hash tables that can have any types including functions and other objects as the "value" part of the key value pair. The omdbApi object literal contains another object literal. It has a key of `search` which has a value of an anonymous function that returns `movieData` from a query paramter.  At this point the function isn't very useful since it just returns our movie data variable no matter what the input is, but later it will be better.
+
+We then call angular mock which passes in an anonymous function that calls mock inject with our omdb api and creates an instance of it. It can then be called by our expect clause at the botttom and compared. the underscores resolve a conflict where you can't pass in something of the same name, but get removed at runtime so it will still work.
+
+### Function argument technique
+
+````javascript
+    it('should return search movie data', function() {
+        var omdbApi = {};
+
+        angular.mock.module(function($provide) {
+            $provide.factory('omdbApi', function() {
+                return {
+                    search: function(query) {
+                        return movieData;
+                    }
+                }
+            })
+        });
+
+        angular.mock.inject(function(_omdbApi_) {
+            omdbApi = _omdbApi_;
+        });
+
+        expect(omdbApi.search('star wars')).toEqual(movieData);
+    });
+````
