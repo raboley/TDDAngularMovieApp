@@ -169,7 +169,7 @@ describe('omdb service', function() {
 
 First we describe the test, and pass in a function.  Then create the variable to hold what the results should be. _This won't be a great long term test since in a couple years when the new star wars movies come out it will probably cause this test to fail inadvertantly, but oh well._
 
-Next we are creating variable that is a function with a search method that returns the movieData variable. 
+Next we are creating variable that is a function with a search method that returns the movieData variable.
 
 The final part is an assertion that we expect the results from our service variable's function will equal the same thing as our json string when we pass it the string `'star wars'`
 
@@ -416,7 +416,7 @@ describe('omdb service', function() {
 });
 ````
 
-One thing to note is that the `module` and `inject` methods are both so commonly used that they are available at the window level. This means that the `angular.mock` prefix is optional. Those could be re-written as: 
+One thing to note is that the `module` and `inject` methods are both so commonly used that they are available at the window level. This means that the `angular.mock` prefix is optional. Those could be re-written as:
 
 ````javascript
     beforeEach(module('omdb'));
@@ -449,3 +449,232 @@ dump(angular.mock.dump(movieData));
 ````
 
 this does the same thing as `console.log`, and still requires the `angular.mock.dump` call inside the `dump` function so i'm not sure why you would use this over `console.log`.
+
+## Adding Http functionality to OMDB service
+
+Our service is currently using hardcoded values so to change that we will use angular's `$http` service to make the http requests. This will be injected into the factory in our service file.
+
+to inject this into our factory add a `$http` parameter to our function. `$q` will also be injected since it holds the `.deferred` method that we will use to handle the async flow.
+
+````javascript
+.factory('omdbApi', function($http, $q) {
+````
+
+next refactor the search method to use a http request asynchronously. This will use the promise method to fire off a request that returns a promise when it is finished. First create an instance of a deferred variable, then fire off an http request and fill the deferred variable with the data. Finally return the promise which should be a promise response that includes the data.
+
+````javascript
+service.search = function(query) {
+
+    var deferred = $q.defer();
+    $http.get(baseUrl + 's=' + encodeURIComponent(query))
+        .success(function(data) {
+            deferred.resolve(data);
+        });
+
+    return deferred.promise;
+}
+````
+
+The test will fail as of now since it doesn't fulfill the promise when it is fired off. The test needs to be updated to work with the promise return type. The call will look something like this.
+
+````javascript
+    it('should return search movie data', function() {
+        var response;
+        omdbApi.search('star wars')
+        .then(function(data) {
+            response = data;
+        })
+        expect(response).toEqual(movieData);
+    });
+````
+
+it will still not work because the .then part of the http request is not being completed. This is because ngMock doesn't actually make http calls for tests, so we have to use $httpBackendProvider to make mock http calls.
+
+### ngMock functions for mocking http calls
+
+There are two functions that can mock http call comparisons, When and expect. When function is best suited for black box tests. Expect is best used for testing exact usage. When can be re-used, while expect is single use and has to be executed in the exact order they are setup.
+
+#### When
+
+````javascript
+$httpBackend
+    .when('GET','http://localhost/api')
+    .respond(200, {foo: 'bar' });
+````
+
+#### Expect
+
+````javascript
+$httpBackend
+    .expect('GET','http://localhost/api')
+    .respond(200, {foo: 'bar' });
+````
+
+Now to use these in the tests the first thing is to add the `$httpBackend` as a variable in the test, and add its constructor to the beforeEach `function`
+
+````javascript
+var $httpBackend;
+````
+
+````javascript
+beforeEach(angular.mock.inject(function(_omdbApi_, _$httpBackend_) {
+    omdbApi = _omdbApi_;
+    $httpBackend = _$httpBackend_;
+}));
+````
+
+Then update the test to use a when call and return the promise.  also at the end using `$httpBackend.flush` it will control the flow of the async calls to force all of them to finish before doing the expect section of the test.
+
+````javascript
+it('should return search movie data', function() {
+    var response;
+
+    $httpBackend.when('GET','http://www.omdbapi.com/?v=1&s=star%20wars')
+        .respond(200, movieData);
+
+    omdbApi.search('star wars')
+        .then(function(data) {
+            response = data;
+        })
+
+    $httpBackend.flush();
+
+    expect(response).toEqual(movieData);
+});
+````
+
+The test should pass now. In the test function we passed in a string for the url, but we can change this to be a regex pattern or pass in a function for more complicated urls. Here we can pass in a boolean to make sure the beginning of the url is the same as what we expect.
+
+````javascript
+//var expectedUrl = 'http://www.omdbapi.com/?v=1&s=star%20wars'
+var expectedUrl = function(url) {
+    return url.indexOf('http://www.omdbapi.com') !== -1;
+}
+$httpBackend.when('GET', expectedUrl)
+    .respond(200, movieData);
+````
+
+this will give the correct response as long as the boolean value returned by expectedUrl is true. Using regex we can also construct more complex expressions.
+
+````javascript
+var expectedUrl = /http:\/\/www.omdbapi.com\/\?v=1&s=star%20wars/;
+````
+
+not sure why that is any better than any other method done so far, but maybe with better regex pattern matching it would make more sense. I will use the first method for the first test. Now to make the second test use the $http request mocking system.
+
+````javascript
+it('should return movie data by id', function() {
+    var response;
+    var expectedUrl = 'http://www.omdbapi.com/?v=1&i=tt0076759'
+
+    $httpBackend.expect('GET', expectedUrl)
+        .respond(200, movieDataById);
+
+    omdbApi.find('tt0076759')
+        .then(function(data) {
+            response = data;
+        })
+
+    $httpBackend.flush();
+    expect(omdbApi.find('tt0076759')).toEqual(movieDataById);
+});
+````
+
+The url will be a little different, the request is going to be different, and just t ouse both let's use the `.expect` function. after updating this test it will still fail since we haven't implemented this into our code yet. so next is to update the src file.
+
+````javascript
+    it('should return movie data by id', function() {
+        var response;
+
+        $httpBackend.expect('GET', 'http://www.omdbapi.com/?v=1&i=tt0076759')
+            .respond(200, movieDataById);
+
+        omdbApi.find('tt0076759')
+            .then(function(data) {
+                response = data;
+            })
+
+        $httpBackend.flush();
+        expect(response).toEqual(movieDataById);
+    });
+````
+
+this should now compare the response from the mock http request against the data variable.  Next is to implement the method in the src file.
+
+````javascript
+service.find = function(id) {
+    var deferred = $q.defer();
+    $http.get(baseUrl + 'i=' + id)
+        .success(function(data) {
+            deferred.resolve(data);
+        });
+    return deferred.promise;
+}
+````
+
+Only a few things needed to be modified for this to work. The url needed to build using 'i=' instead of 's=' and it needed to end with the id instead of the search string. Now the test should pass, but it is a little ugly so time to refactor. By extracting the http call logic out into a function it can be used in each method without duplication of code. That way each method just needs to pass in the url it should be testing against.
+
+````javascript
+angular.module('omdb',[])
+    .factory('omdbApi', function($http, $q) {
+        var service = {};
+        var baseUrl = 'http://www.omdbapi.com/?v=1&';
+
+        function httpPromsie (url) {
+            var deferred = $q.defer();
+            $http.get(url)
+                .success(function(data) {
+                    deferred.resolve(data);
+                });
+            return deferred.promise;
+        }
+
+        service.search = function(query) {
+            return httpPromsie(baseUrl + 's=' + encodeURIComponent(query))
+        }
+
+        service.find = function(id) {
+            return httpPromsie(baseUrl + 'i=' + id)
+        }
+
+        return service;
+    });
+````
+
+Next we want to make sure we throw errors correctly when we get an invalid url. This test will expect a failing promise code such as 500 and we will fill it with a string called 'Error!'
+
+````javascript
+it('should handle error', function() {
+    var response;
+
+    $httpBackend.expect('GET', 'http://www.omdbapi.com/?v=1&i=tt0076759')
+        .respond(500);
+
+    omdbApi.find('tt0076759')
+        .then(function(data) {
+            response = data;
+        })
+        .catch(function() {
+            response = 'Error!';
+        });
+
+    $httpBackend.flush();
+    expect(response).toEqual('Error!');
+})
+````
+
+Implementing this functionality is pretty simple. In the src file just update the httpPromise method to have a .error return result.
+
+````javascript
+function httpPromsie (url) {
+    var deferred = $q.defer();
+    $http.get(url)
+        .success(function(data) {
+            deferred.resolve(data);
+        })
+        .error(function(data) {
+            deferred.reject();
+        });
+    return deferred.promise;
+}
+````
